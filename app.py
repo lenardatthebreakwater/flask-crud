@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 languages = [{"name": "Python"}, {"name": "Javascript"}, {"name": "C"}]
 
@@ -18,5 +18,11 @@ def create_app():
         language.append(lang)
     
     return jsonify({"language": language[0]})
+  
+  @app.route("/lang", methods=["POST"]) 
+  def addOne():
+    languages.append({"name": request.json["name"]})
+    
+    return jsonify({"languages": languages})
   
   return app
