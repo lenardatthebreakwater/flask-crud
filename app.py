@@ -1,66 +1,47 @@
-from flask import Flask, jsonify, request, redirect, url_for
+from flask import Flask, render_template, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///db.sqlite3"
-  
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///todo.db"
 db = SQLAlchemy(app)
-  
-class Language(db.Model):
-  id = db.Column(db.Integer, primary_key=True)
-  name = db.Column(db.String, unique=True, nullable=False)
-  
-@app.route("/lang", methods=["GET"])
-def getAll():
-  languages = []
-  
-  for language in Language.query.all():
-    languages.append({"id": language.id, "name": language.name})
-  
-  return jsonify({"languages": languages})
 
-@app.route("/lang/<int:id>")
-def getOne(id):
-  language = Language.query.filter_by(id=id).first()
-  
-  return jsonify({"language": {"id": language.id, "name": language.name}})
+class Todo(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
 
-@app.route("/lang", methods=["POST"]) 
-def addOne():
-  new_language = Language(name=request.json["name"])
-  
-  db.session.add(new_language)
-  db.session.commit()
-  
-  languages = []
-  for language in Language.query.all():
-    languages.append({"id": language.id, "name": language.name})
-    
-  return jsonify({"languages": languages})
-    
-@app.route("/lang/<int:id>", methods=["PUT"])
-def updateOne(id):
-  language = Language.query.filter_by(id=id).first()
-  
-  language.name = request.json["name"]
-  db.session.commit()
-  
-  languages = []
-  for language in Language.query.all():
-    languages.append({"id": language.id, "name": language.name})
-  
-  return jsonify({"languages": languages})
-  
-@app.route("/lang/<int:id>", methods=["DELETE"])
-def deleteOne(id):
-  language = Language.query.filter_by(id=id).first()
-  
-  db.session.delete(language)
-  db.session.commit()
-  
-  languages = []
-  for lang in Language.query.all():
-    languages.append({"id": lang.id, "name": lang.name})
-    
-  return jsonify({"languages": languages})
-  
+@app.get("/")
+def home():
+    todos = Todo.query.all()
+    return render_template("home.html", todos=todos)
+
+@app.post("/add")
+def add():
+    content = request.form["content"]
+    new_todo = Todo(content=content)
+    db.session.add(new_todo)
+    db.session.commit()
+    return redirect("/")
+
+@app.get("/update/<int:todo_id>")
+def update_get(todo_id):
+    todo = Todo.query.get_or_404(todo_id)
+    return render_template("update.html", todo=todo)
+
+@app.post("/update/<int:todo_id>")
+def update_post(todo_id):
+    todo = Todo.query.get_or_404(todo_id)
+    todo.content = request.form["todo_update"]
+    db.session.commit()
+    return redirect("/")
+
+@app.get("/delete/<int:todo_id>")
+def delete(todo_id):
+    todo = Todo.query.get_or_404(todo_id)
+    db.session.delete(todo)
+    db.session.commit()
+    return redirect("/")
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
